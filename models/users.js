@@ -1,14 +1,39 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const UserSchema = mongoose.Schema({
-    email: {
+
+    method: {
         type: String,
-        required: true,
-        lowercase: true
+        enum: ['local', 'google', 'facebook'],
+        require: true
     },
-    password: {
-        type: String,
-        required: true
+    local: {
+        email: {
+            //here we remove the required 
+            type: String,
+            lowercase: true
+        },
+        password: {
+            type: String,
+        }
+    },
+    google: {
+        id: {
+            type: String
+        },
+        email: {
+            type: String,
+            lowercase: true
+        }
+    },
+    facebook: {
+        id: {
+            type: String
+        },
+        email: {
+            type: String,
+            lowercase: true
+        }
     }
 });
 
@@ -16,12 +41,17 @@ const UserSchema = mongoose.Schema({
 //we called  function in a old Fashion way
 UserSchema.pre('save', async function(next) {
     try {
+        //if we use OAuth then we dont need to 
+        //hash the password
+        if (this.method !== 'local') {
+            next();
+        }
         //Generate a Salt 
         const salt = await bcrypt.genSalt(11)
-        const passHash = await bcrypt.hash(this.password, salt)
+        const passHash = await bcrypt.hash(this.local.password, salt)
         console.log("Normal Pass ", this.password);
         console.log('Salt Pass ', passHash)
-        this.password = passHash;
+        this.local.password = passHash;
         next()
     } catch (error) {
         next(error);
@@ -31,7 +61,7 @@ UserSchema.pre('save', async function(next) {
 //To chekc is the given pass is correct or not
 UserSchema.methods.isValidPassword = async function(newPass) {
     try {
-        return await bcrypt.compare(newPass, this.password)
+        return await bcrypt.compare(newPass, this.local.password)
     } catch (error) {
         throw new Error(error);
     }

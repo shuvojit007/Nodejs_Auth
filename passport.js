@@ -3,13 +3,14 @@ const JwtStrategy = require('passport-jwt').Strategy;
 //this is for get the token frm header
 const { ExtractJwt } = require('passport-jwt');
 const LocalStrategy = require('passport-local').Strategy;
-const { JWT_SECRET } = require('./configuration');
+const GooglePlusTokenStrategy = require('passport-google-plus-token');
+const config = require('./configuration/index');
 const User = require('./models/users');
 
 //JSON WEB TOKEN STRATEGY (authenticate using token)
-passport.use(new JwtStrategy({
+passport.use("jwt", new JwtStrategy({
     jwtFromRequest: ExtractJwt.fromHeader('auth'),
-    secretOrKey: JWT_SECRET
+    secretOrKey: config.JWT_SECRET
 }, async(payload, done) => {
     //Here we stuck for some moments cz here er didnot handle the promise async function
     try {
@@ -28,10 +29,28 @@ passport.use(new JwtStrategy({
     }
 }));
 
+//Google Auth Strategy
+passport.use('googleToken',
+    new GooglePlusTokenStrategy({
+        clientID: config.oauth.google.clientID,
+        clientSecret: config.oauth.google.clientSecret
+    }, async(accessToken, refreshToken, profile, done) => {
+        try {
+            console.log('Profile : ', profile);
+            console.log('acessToken : ', accessToken);
+            console.log('refreshToken : ', refreshToken);
+        } catch (error) {
+            done(error, false, error.message);
+        }
+    }))
+
+
+
+
 
 
 // LOCAL STRATEGY (Username )
-passport.use(new LocalStrategy({
+passport.use("local", new LocalStrategy({
     usernameField: 'email'
 }, async(email, password, done) => {
     try {
